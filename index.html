@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Print Cost Calculator – Code93Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d; --surface: #161616; --card: #1c1c1c;
+    --border: #2a2a2a; --accent: #ff6b00; --accent2: #ffaa44;
+    --green: #00e676; --text: #f0ece4; --muted: #888; --sym: #ff9933;
+    --red: #ff4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: linear-gradient(rgba(255,107,0,0.04) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,107,0,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 40px 20px 80px; position: relative; z-index: 1; }
+
+  /* HEADER */
+  header { text-align: center; margin-bottom: 40px; }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(28px,6vw,52px); font-weight: 800; line-height: 1.05; letter-spacing: -1px; margin-bottom: 10px; }
+  h1 span { background: linear-gradient(135deg,#ff6b00,#ffaa44); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { color: var(--muted); font-size: 12px; letter-spacing: 1px; }
+
+  /* CURRENCY BAR */
+  .currency-bar { display: flex; justify-content: center; margin-bottom: 36px; }
+  .currency-select-wrap { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 10px 18px; }
+  .clabel { font-size: 10px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+  select#currencySelect {
+    background: var(--surface); border: 1px solid var(--accent); border-radius: 4px;
+    color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500;
+    padding: 6px 32px 6px 12px; outline: none; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ff6b00' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; background-color: var(--surface);
+  }
+  select#currencySelect:focus { border-color: var(--accent2); }
+
+  /* PRINTER HEADER ROW */
+  .printer-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .section-label { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; }
+
+  .add-printer-btn {
+    background: transparent; border: 1px solid var(--accent); border-radius: 4px;
+    color: var(--accent); font-family: 'DM Mono', monospace; font-size: 11px;
+    letter-spacing: 1px; padding: 6px 14px; cursor: pointer; transition: all 0.2s;
+  }
+  .add-printer-btn:hover { background: var(--accent); color: #000; }
+
+  /* PRINTER ROW */
+  .printer-row { display: flex; gap: 10px; margin-bottom: 32px; flex-wrap: wrap; }
+  .printer-btn {
+    flex: 1; min-width: 110px; max-width: 200px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    padding: 12px 14px 10px; color: var(--muted); font-family: 'DM Mono', monospace;
+    font-size: 10px; cursor: pointer; transition: all 0.2s; text-align: left;
+    position: relative; overflow: hidden; line-height: 1.6;
+  }
+  .printer-btn::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); opacity: 0; transition: opacity 0.2s; }
+  .printer-btn.active { border-color: var(--accent); color: var(--text); background: #201a14; }
+  .printer-btn.active::before { opacity: 1; }
+  .printer-btn .pname { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; display: block; margin-bottom: 3px; }
+  .printer-btn.active .pname { color: var(--accent); }
+  .printer-btn .pinfo { display: block; font-size: 10px; color: var(--muted); }
+  .printer-btn.active .pinfo { color: var(--text); }
+
+  /* Delete badge on printer btn */
+  .del-btn {
+    position: absolute; top: 5px; right: 6px;
+    background: transparent; border: none; color: #555;
+    font-size: 13px; cursor: pointer; line-height: 1;
+    padding: 0; transition: color 0.15s;
+    display: none;
+  }
+  .printer-btn:hover .del-btn { display: block; }
+  .del-btn:hover { color: var(--red); }
+  .del-btn.locked { display: none !important; }
+
+  /* SECTION */
+  .section { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 16px; }
+  .section-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+  label { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  label .val { color: var(--text); font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+  input[type="range"] { -webkit-appearance: none; width: 100%; height: 2px; background: var(--border); border-radius: 2px; outline: none; cursor: pointer; margin-bottom: 8px; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: var(--accent); border-radius: 50%; cursor: pointer; box-shadow: 0 0 0 4px rgba(255,107,0,0.15); transition: box-shadow 0.2s; }
+  input[type="range"]::-webkit-slider-thumb:hover { box-shadow: 0 0 0 8px rgba(255,107,0,0.2); }
+  input[type="number"], input[type="text"] { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 10px 14px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; outline: none; transition: border-color 0.2s; }
+  input[type="number"]:focus, input[type="text"]:focus { border-color: var(--accent); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  /* RESULTS */
+  .results { background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: 28px; margin-top: 8px; position: relative; overflow: hidden; }
+  .results::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at top left, rgba(255,107,0,0.07), transparent 60%); pointer-events: none; }
+  .result-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .result-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .result-row:first-child { padding-top: 0; }
+  .result-label { font-size: 11px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; }
+  .result-value { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 22px; color: var(--text); }
+  .result-value.highlight { font-size: 32px; color: var(--green); }
+  .result-value .sym { font-size: 0.65em; color: var(--sym); margin-right: 2px; }
+  .breakdown { margin-top: 24px; padding-top: 24px; border-top: 1px dashed var(--border); }
+  .breakdown-title { font-size: 10px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 16px; }
+  .bar-item { margin-bottom: 10px; }
+  .bar-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .bar-label span:last-child { color: var(--text); }
+  .bar-bg { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: var(--card); border: 1px solid var(--accent); border-radius: 10px; padding: 28px; width: 100%; max-width: 400px; margin: 20px; position: relative; }
+  .modal-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--accent); margin-bottom: 22px; }
+  .modal-field { margin-bottom: 16px; }
+  .modal-label { display: block; font-size: 10px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 7px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
+  .modal-cancel { flex: 1; background: transparent; border: 1px solid var(--border); border-radius: 4px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 13px; padding: 10px; cursor: pointer; transition: all 0.2s; }
+  .modal-cancel:hover { border-color: var(--muted); color: var(--text); }
+  .modal-save { flex: 2; background: var(--accent); border: none; border-radius: 4px; color: #000; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; padding: 10px; cursor: pointer; transition: opacity 0.2s; }
+  .modal-save:hover { opacity: 0.85; }
+  .modal-error { color: var(--red); font-size: 11px; margin-top: 10px; display: none; }
+
+  /* FOOTER */
+  footer { text-align: center; margin-top: 48px; color: var(--muted); font-size: 11px; letter-spacing: 1px; line-height: 2.2; }
+  footer strong { color: var(--accent); }
+
+  @media (max-width: 480px) {
+    .grid2 { grid-template-columns: 1fr; }
+    .printer-btn { min-width: 45%; max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>3D Print<br><span>Cost Calculator</span></h1>
+    <p class="subtitle">Professional Edition · Multi-Currency</p>
+  </header>
+
+  <!-- Currency Selector -->
+  <div class="currency-bar">
+    <div class="currency-select-wrap">
+      <span class="clabel">Currency</span>
+      <select id="currencySelect" onchange="changeCurrency()">
+        <option value="INR" data-sym="₹"   data-locale="en-IN" selected>🇮🇳 INR – Indian Rupee</option>
+        <option value="USD" data-sym="$"   data-locale="en-US">🇺🇸 USD – US Dollar</option>
+        <option value="EUR" data-sym="€"   data-locale="de-DE">🇪🇺 EUR – Euro</option>
+        <option value="GBP" data-sym="£"   data-locale="en-GB">🇬🇧 GBP – British Pound</option>
+        <option value="AED" data-sym="د.إ" data-locale="en-AE">🇦🇪 AED – UAE Dirham</option>
+        <option value="SGD" data-sym="S$"  data-locale="en-SG">🇸🇬 SGD – Singapore Dollar</option>
+        <option value="AUD" data-sym="A$"  data-locale="en-AU">🇦🇺 AUD – Australian Dollar</option>
+        <option value="CAD" data-sym="C$"  data-locale="en-CA">🇨🇦 CAD – Canadian Dollar</option>
+        <option value="JPY" data-sym="¥"   data-locale="ja-JP">🇯🇵 JPY – Japanese Yen</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Printer Selection -->
+  <div class="printer-header">
+    <span class="section-label">Select Printer</span>
+    <button class="add-printer-btn" onclick="openModal()">＋ Add Printer</button>
+  </div>
+  <div class="printer-row" id="printerRow"></div>
+
+  <!-- Energy -->
+  <div class="section">
+    <div class="section-title">⚡ Energy</div>
+    <div class="field">
+      <label>Electricity Rate (<span class="sym-inline">₹</span>/kWh) <span class="val" id="elecVal">₹8.00</span></label>
+      <input type="range" id="elecRate" min="1" max="50" step="0.5" value="8" oninput="syncSlider()">
+    </div>
+    <div class="field">
+      <label>Print Time (hours) <span class="val" id="timeVal">4 h</span></label>
+      <input type="range" id="printTime" min="0.5" max="72" step="0.5" value="4" oninput="syncTime()">
+    </div>
+  </div>
+
+  <!-- Filament -->
+  <div class="section">
+    <div class="section-title">🧵 Filament</div>
+    <div class="grid2">
+      <div class="field">
+        <label>Filament Cost (<span class="sym-inline">₹</span>/kg)</label>
+        <input type="number" id="filamentCost" value="1200" min="1" step="10" oninput="calculate()">
+      </div>
+      <div class="field">
+        <label>Model Weight (g)</label>
+        <input type="number" id="modelWeight" value="50" min="1" step="1" oninput="calculate()">
+      </div>
+    </div>
+  </div>
+
+  <!-- Machine -->
+  <div class="section">
+    <div class="section-title">🖨️ Machine</div>
+    <div class="grid2">
+      <div class="field">
+        <label>Machine Price (<span class="sym-inline">₹</span>)</label>
+        <input type="number" id="machinePrice" value="89999" min="100" step="100" oninput="calculate()">
+      </div>
+      <div class="field">
+        <label>Lifespan (hours)</label>
+        <input type="number" id="lifespan" value="5000" min="100" step="100" oninput="calculate()">
+      </div>
+    </div>
+    <div class="field">
+      <label>Maintenance &amp; Consumables (<span class="sym-inline">₹</span>/print)</label>
+      <input type="number" id="maintenance" value="50" min="0" step="5" oninput="calculate()">
+    </div>
+  </div>
+
+  <!-- Margin -->
+  <div class="section">
+    <div class="section-title">📈 Profit Margin</div>
+    <div class="field">
+      <label>Margin <span class="val" id="marginVal">30%</span></label>
+      <input type="range" id="margin" min="0" max="500" step="5" value="30" oninput="syncMargin()">
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results">
+    <div class="result-row">
+      <div class="result-label">Production Cost</div>
+      <div class="result-value"><span class="sym" id="symCost">₹</span><span id="costNum">0.00</span></div>
+    </div>
+    <div class="result-row">
+      <div class="result-label">Suggested Selling Price</div>
+      <div class="result-value highlight"><span class="sym" id="symPrice">₹</span><span id="priceNum">0.00</span></div>
+    </div>
+    <div class="breakdown">
+      <div class="breakdown-title">Cost Breakdown</div>
+      <div class="bar-item">
+        <div class="bar-label"><span>⚡ Energy</span><span id="bEnergy">0.00</span></div>
+        <div class="bar-bg"><div class="bar-fill" id="bEnergyBar" style="background:#ff6b00;width:0%"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>🧵 Filament</span><span id="bFilament">0.00</span></div>
+        <div class="bar-bg"><div class="bar-fill" id="bFilamentBar" style="background:#ffaa44;width:0%"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>🖨️ Amortization</span><span id="bAmort">0.00</span></div>
+        <div class="bar-bg"><div class="bar-fill" id="bAmortBar" style="background:#ff9933;width:0%"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label"><span>🔧 Maintenance</span><span id="bMaint">0.00</span></div>
+        <div class="bar-bg"><div class="bar-fill" id="bMaintBar" style="background:#ffd180;width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    3D Print Cost Calculator · Professional Edition<br>
+    Built by <strong>Code93Studio</strong> · All rights reserved
+  </footer>
+</div>
+
+<!-- Add Printer Modal -->
+<div id="modal" class="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal-box">
+    <div class="modal-title">Add Custom Printer</div>
+    <div class="modal-field">
+      <label class="modal-label">Printer Name</label>
+      <input type="text" id="newName" placeholder="e.g. Creality K1" />
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Price (<span class="sym-inline modal-sym">₹</span>) in current currency</label>
+      <input type="number" id="newPrice" placeholder="e.g. 35000" min="1" />
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Power Consumption (Watts)</label>
+      <input type="number" id="newWatt" placeholder="e.g. 350" min="1" />
+    </div>
+    <div class="modal-error" id="modalError">Please fill in all fields.</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-save" onclick="addPrinter()">Add Printer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Printer data (price always stored in INR) ─────────────
+  let printers = [
+    { id: 1, name: 'P1S',          priceINR: 89999,  watt: 1000, locked: true },
+    { id: 2, name: 'X1 Carbon',    priceINR: 109999, watt: 1200, locked: true },
+    { id: 3, name: 'A1',           priceINR: 27600,  watt: 1300, locked: true },
+    { id: 4, name: 'A1 Mini',      priceINR: 29999,  watt: 350,  locked: true },
+    { id: 5, name: 'H2S',          priceINR: 171999, watt: 1200, locked: true },
+    { id: 6, name: 'Snapmaker U1', priceINR: 130000, watt: 500,  locked: true },
+  ];
+  let activePrinterId = 1;
+  let nextId = 100;
+
+  // ── Currency state ────────────────────────────────────────
+  let currSym    = '₹';
+  let currLocale = 'en-IN';
+  let currCode   = 'INR';
+
+  const ratesFromINR = {
+    INR: 1, USD: 0.012, EUR: 0.011, GBP: 0.0094,
+    AED: 0.044, SGD: 0.016, AUD: 0.019, CAD: 0.016, JPY: 1.81
+  };
+  const defaultElec = {
+    INR: 8, USD: 0.13, EUR: 0.28, GBP: 0.24,
+    AED: 0.09, SGD: 0.22, AUD: 0.25, CAD: 0.14, JPY: 19
+  };
+  const defaultFilament = {
+    INR: 1200, USD: 15, EUR: 14, GBP: 12,
+    AED: 55, SGD: 20, AUD: 22, CAD: 20, JPY: 2200
+  };
+  const defaultMaint = {
+    INR: 50, USD: 0.6, EUR: 0.55, GBP: 0.47,
+    AED: 2.2, SGD: 0.8, AUD: 0.95, CAD: 0.8, JPY: 90
+  };
+
+  function toCurrentCurrency(inrVal) {
+    return inrVal * ratesFromINR[currCode];
+  }
+
+  // ── Render printer buttons ────────────────────────────────
+  function renderPrinters() {
+    const row = document.getElementById('printerRow');
+    row.innerHTML = '';
+    printers.forEach(p => {
+      const converted = toCurrentCurrency(p.priceINR);
+      const priceStr  = currSym + fmtCompact(converted);
+      const btn = document.createElement('button');
+      btn.className = 'printer-btn' + (p.id === activePrinterId ? ' active' : '');
+      btn.innerHTML = `
+        <span class="pname">${p.name}</span>
+        <span class="pinfo">${priceStr} · ${p.watt}W</span>
+        <button class="del-btn${p.locked ? ' locked' : ''}" onclick="deletePrinter(event,${p.id})" title="Remove">✕</button>
+      `;
+      btn.addEventListener('click', () => selectPrinter(p.id));
+      row.appendChild(btn);
+    });
+  }
+
+  // Compact number format for printer buttons (no decimals for large numbers)
+  function fmtCompact(n) {
+    if (currCode === 'JPY') return Math.round(n).toLocaleString(currLocale);
+    if (n >= 1000) return Math.round(n).toLocaleString(currLocale);
+    return n.toLocaleString(currLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  // ── Select printer ────────────────────────────────────────
+  function selectPrinter(id) {
+    activePrinterId = id;
+    const p = printers.find(x => x.id === id);
+    document.getElementById('machinePrice').value = Math.round(toCurrentCurrency(p.priceINR));
+    renderPrinters();
+    calculate();
+  }
+
+  // ── Delete printer ────────────────────────────────────────
+  function deletePrinter(e, id) {
+    e.stopPropagation();
+    printers = printers.filter(p => p.id !== id);
+    if (activePrinterId === id) {
+      activePrinterId = printers[0]?.id || null;
+      if (activePrinterId) selectPrinter(activePrinterId);
+    }
+    renderPrinters();
+  }
+
+  // ── Currency switch ───────────────────────────────────────
+  function changeCurrency() {
+    const sel = document.getElementById('currencySelect');
+    const opt = sel.options[sel.selectedIndex];
+    currSym    = opt.dataset.sym;
+    currLocale = opt.dataset.locale;
+    currCode   = sel.value;
+
+    // Symbols in labels
+    document.querySelectorAll('.sym-inline').forEach(el => el.textContent = currSym);
+    document.getElementById('symCost').textContent  = currSym;
+    document.getElementById('symPrice').textContent = currSym;
+
+    // Active printer machine price
+    const active = printers.find(p => p.id === activePrinterId);
+    if (active) document.getElementById('machinePrice').value = Math.round(toCurrentCurrency(active.priceINR));
+
+    // Defaults for energy/filament/maintenance
+    const elecSlider = document.getElementById('elecRate');
+    const newElec = defaultElec[currCode];
+    elecSlider.min   = (newElec * 0.1).toFixed(2);
+    elecSlider.max   = (newElec * 8).toFixed(2);
+    elecSlider.step  = currCode === 'JPY' ? 1 : 0.5;
+    elecSlider.value = newElec;
+    document.getElementById('filamentCost').value = defaultFilament[currCode];
+    document.getElementById('maintenance').value  = defaultMaint[currCode];
+
+    renderPrinters();
+    syncSlider(); syncTime(); syncMargin(); calculate();
+  }
+
+  // ── Modal ─────────────────────────────────────────────────
+  function openModal() {
+    document.getElementById('newName').value  = '';
+    document.getElementById('newPrice').value = '';
+    document.getElementById('newWatt').value  = '';
+    document.getElementById('modalError').style.display = 'none';
+    document.getElementById('modal').classList.add('open');
+    document.getElementById('newName').focus();
+  }
+
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+  function closeModalOutside(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+
+  function addPrinter() {
+    const name  = document.getElementById('newName').value.trim();
+    const price = parseFloat(document.getElementById('newPrice').value);
+    const watt  = parseFloat(document.getElementById('newWatt').value);
+    const err   = document.getElementById('modalError');
+
+    if (!name || !price || !watt || price <= 0 || watt <= 0) {
+      err.style.display = 'block';
+      err.textContent = 'Please fill in all fields with valid values.';
+      return;
+    }
+
+    // Price entered is in current currency — convert back to INR for storage
+    const priceINR = price / ratesFromINR[currCode];
+
+    const newPrinter = { id: nextId++, name, priceINR, watt, locked: false };
+    printers.push(newPrinter);
+    closeModal();
+    selectPrinter(newPrinter.id);
+  }
+
+  // ── Sliders ───────────────────────────────────────────────
+  function syncSlider() {
+    const val = parseFloat(document.getElementById('elecRate').value);
+    document.getElementById('elecVal').textContent = currSym + fmtVal(val);
+    calculate();
+  }
+  function syncTime() {
+    const val = parseFloat(document.getElementById('printTime').value);
+    document.getElementById('timeVal').textContent = val + ' h';
+    calculate();
+  }
+  function syncMargin() {
+    const val = parseFloat(document.getElementById('margin').value);
+    document.getElementById('marginVal').textContent = val + '%';
+    calculate();
+  }
+
+  // ── Format ────────────────────────────────────────────────
+  function fmtVal(n) {
+    const dec = currCode === 'JPY' ? 0 : 2;
+    const num = currCode === 'JPY' ? Math.round(n) : n;
+    try { return num.toLocaleString(currLocale, { minimumFractionDigits: dec, maximumFractionDigits: dec }); }
+    catch(e) { return num.toFixed(dec); }
+  }
+
+  // ── Calculate ─────────────────────────────────────────────
+  function calculate() {
+    const active = printers.find(p => p.id === activePrinterId);
+    const watt   = active ? active.watt : 0;
+
+    const elecRate     = parseFloat(document.getElementById('elecRate').value)     || 0;
+    const printTime    = parseFloat(document.getElementById('printTime').value)    || 0;
+    const filamentCost = parseFloat(document.getElementById('filamentCost').value) || 0;
+    const modelWeight  = parseFloat(document.getElementById('modelWeight').value)  || 0;
+    const machinePrice = parseFloat(document.getElementById('machinePrice').value) || 0;
+    const lifespan     = parseFloat(document.getElementById('lifespan').value)     || 1;
+    const maintenance  = parseFloat(document.getElementById('maintenance').value)  || 0;
+    const margin       = parseFloat(document.getElementById('margin').value)       || 0;
+
+    const energy   = (watt / 1000) * printTime * elecRate;
+    const filament = (filamentCost / 1000) * modelWeight;
+    const amort    = (machinePrice / lifespan) * printTime;
+    const total    = energy + filament + amort + maintenance;
+    const price    = total * (1 + margin / 100);
+
+    document.getElementById('costNum').textContent  = fmtVal(total);
+    document.getElementById('priceNum').textContent = fmtVal(price);
+
+    const parts = [
+      { el: 'bEnergy',   bar: 'bEnergyBar',  val: energy },
+      { el: 'bFilament', bar: 'bFilamentBar', val: filament },
+      { el: 'bAmort',    bar: 'bAmortBar',    val: amort },
+      { el: 'bMaint',    bar: 'bMaintBar',    val: maintenance },
+    ];
+    const max = Math.max(energy, filament, amort, maintenance, 0.001);
+    parts.forEach(p => {
+      document.getElementById(p.el).textContent = currSym + fmtVal(p.val);
+      document.getElementById(p.bar).style.width = Math.max((p.val / max) * 100, p.val > 0 ? 2 : 0) + '%';
+    });
+  }
+
+  // ── Init ─────────────────────────────────────────────────
+  renderPrinters();
+  syncSlider(); syncTime(); syncMargin(); calculate();
+</script>
+</body>
+</html>
