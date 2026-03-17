@@ -844,10 +844,12 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Detect DevTools open via window size difference (desktop)
+// Detect DevTools open via window size difference (desktop only)
 (function devToolsDetect() {
   const threshold = 160;
+  const isDesktop = () => window.innerWidth >= 768;
   const check = () => {
+    if (!isDesktop()) return; // skip on mobile/tablet — browser UI causes false positives
     if (
       window.outerWidth - window.innerWidth > threshold ||
       window.outerHeight - window.innerHeight > threshold
