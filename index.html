@@ -33,6 +33,14 @@ header{text-align:center;margin-bottom:32px;}
 h1{font-family:'Syne',sans-serif;font-size:clamp(26px,7vw,52px);font-weight:800;line-height:1.05;letter-spacing:-1px;margin-bottom:8px;}
 h1 span{background:linear-gradient(135deg,#ff6b00,#ffaa44);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .subtitle{color:var(--muted);font-size:11px;letter-spacing:1px;}
+.header-links{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px;}
+.shop-link{display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,#ff6b00,#ffaa44);color:#000;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.5px;padding:7px 16px;border-radius:20px;text-decoration:none;transition:opacity 0.2s,transform 0.1s;}
+.shop-link:hover,.shop-link:active{opacity:0.85;transform:translateY(-1px);}
+.header-links{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;flex-wrap:wrap;}
+.insta-link{display:inline-flex;align-items:center;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.5px;padding:7px 18px;border-radius:20px;text-decoration:none;transition:opacity 0.2s,transform 0.1s;}
+.insta-link:hover,.insta-link:active{opacity:0.85;transform:translateY(-1px);}
+.insta-link{display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.5px;padding:7px 16px;border-radius:20px;text-decoration:none;transition:opacity 0.2s,transform 0.1s;}
+.insta-link:hover,.insta-link:active{opacity:0.85;transform:translateY(-1px);}
 
 /* ════════════════════════════════════════
    CURRENCY BAR
@@ -262,6 +270,10 @@ footer strong{color:var(--accent);}
   <header>
     <h1>3D Print<br><span>Cost Calculator</span></h1>
     <p class="subtitle">Professional Edition · Multi-Currency</p>
+    <div class="header-links">
+      <a href="https://kaiendecor.com/" target="_blank" rel="noopener" class="shop-link">🛍️ Visit our Store</a>
+      <a href="https://www.instagram.com/kaiendecor?utm_source=qr&igsh=cHJ5NW56aXAyZnhi" target="_blank" rel="noopener" class="insta-link">📸 @kaiendecor</a>
+    </div>
   </header>
 
   <!-- Currency -->
@@ -387,7 +399,7 @@ footer strong{color:var(--accent);}
 
   <footer>
     3D Print Cost Calculator · Professional Edition<br>
-    Built by <strong>Code93Studio</strong><br>
+    Built by <strong>Code93Studio</strong> · <a href="https://kaiendecor.com/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">kaiendecor.com</a> · <a href="https://www.instagram.com/kaiendecor?utm_source=qr&igsh=cHJ5NW56aXAyZnhi" target="_blank" rel="noopener" style="color:#fd1d1d;text-decoration:none;">Instagram</a><br>
     <span style="font-size:10px;color:#555;">© 2026 Code93Studio · All Rights Reserved · Unauthorized copying, reproduction or redistribution of this tool is strictly prohibited.</span>
   </footer>
 </div>
