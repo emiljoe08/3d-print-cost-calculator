@@ -387,7 +387,8 @@ footer strong{color:var(--accent);}
 
   <footer>
     3D Print Cost Calculator · Professional Edition<br>
-    Built by <strong>Code93Studio</strong> · All rights reserved
+    Built by <strong>Code93Studio</strong><br>
+    <span style="font-size:10px;color:#555;">© 2026 Code93Studio · All Rights Reserved · Unauthorized copying, reproduction or redistribution of this tool is strictly prohibited.</span>
   </footer>
 </div>
 
@@ -803,5 +804,48 @@ function calculate(){
 renderPrinters();
 syncSlider(); syncTime(); syncMargin(); calculate();
 </script>
+
+<script>
+/* ════════════════════════════════
+   COPY PROTECTION – Code93Studio
+════════════════════════════════ */
+// Disable right-click context menu
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+// Disable text selection
+document.addEventListener('selectstart', e => e.preventDefault());
+
+// Disable drag
+document.addEventListener('dragstart', e => e.preventDefault());
+
+// Disable keyboard shortcuts: F12, Ctrl+U, Ctrl+S, Ctrl+A, Ctrl+C, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C
+document.addEventListener('keydown', e => {
+  const blocked = (
+    e.key === 'F12' ||
+    (e.ctrlKey && e.shiftKey && ['i','I','j','J','c','C'].includes(e.key)) ||
+    (e.ctrlKey && ['u','U','s','S','a','A','c','C'].includes(e.key))
+  );
+  if (blocked) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }
+});
+
+// Detect DevTools open via window size difference (desktop)
+(function devToolsDetect() {
+  const threshold = 160;
+  const check = () => {
+    if (
+      window.outerWidth - window.innerWidth > threshold ||
+      window.outerHeight - window.innerHeight > threshold
+    ) {
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0d0d0d;color:#ff6b00;font-family:Syne,sans-serif;font-size:24px;font-weight:800;text-align:center;padding:20px;">⛔ Unauthorized Access Detected<br><span style="font-size:14px;color:#888;display:block;margin-top:12px;font-family:DM Mono,monospace;">© 2026 Code93Studio · All Rights Reserved</span></div>';
+    }
+  };
+  setInterval(check, 1000);
+})();
+</script>
+
 </body>
 </html>
